@@ -14,12 +14,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install build deps
+      - name: Install build dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential pkg-config libssl-dev
@@ -27,11 +27,12 @@ jobs:
       - name: Build binary
         run: cargo build --release
 
-      - name: Upload Artifact (binary)
-        uses: actions/upload-artifact@v3
+      - name: Upload artifact (Linux binary)
+        uses: actions/upload-artifact@v4
         with:
           name: shiny-linux
           path: target/release/shiny
+          retention-days: 7
 
   release:
     name: Create GitHub Release
@@ -42,13 +43,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download built artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: shiny-linux
           path: ./release-out
+
+      - name: Make file executable
+        run: chmod +x ./release-out/shiny
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
