@@ -1,60 +1,46 @@
-name: Build and Release (Linux Only)
+name: Linux Build
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - "*"
 
 jobs:
-
-  build-linux:
-    name: Build Linux Release Binary
+  build:
+    name: Build Linux Binary
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Rust (stable)
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install build dependencies
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential pkg-config libssl-dev
 
-      - name: Build binary
+      - name: Build
         run: cargo build --release
 
-      - name: Upload artifact (Linux binary)
+      - name: Show build output
+        run: ls -R target/release
+
+      - name: Find built binary
+        id: findbin
+        run: |
+          # Find the first executable file in target/release
+          FILE=$(find target/release -maxdepth 1 -type f -executable | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "No executable binary found!"
+            exit 1
+          fi
+          echo "Found binary: $FILE"
+          echo "binpath=$FILE" >> $GITHUB_OUTPUT
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: shiny-linux
-          path: target/release/shiny
+          name: linux-binary
+          path: ${{ steps.findbin.outputs.binpath }}
           retention-days: 7
-
-  release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: build-linux
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download built artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: shiny-linux
-          path: ./release-out
-
-      - name: Make file executable
-        run: chmod +x ./release-out/shiny
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./release-out/shiny
